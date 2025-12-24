@@ -18,6 +18,30 @@ uv sync --extra unsloth
 uv sync --all-extras
 ```
 
+## 🚀 Run on Colab (Recommended for GPU)
+
+Use Google Colab's free T4 GPU for faster training with Unsloth.
+
+### Quick Start (3 commands)
+
+```bash
+# In Colab notebook:
+!git clone https://github.com/khedhar108/Finetune-Compiler.git
+%cd Finetune-Compiler
+!pip install uv -q && uv sync --extra ui --extra unsloth
+!uv run ai-compile ui2 --share
+```
+
+Then **click the `gradio.live` link** to open the Wizard UI.
+
+### Using the Notebook
+
+1. Open `notebooks/vscode_colab_launcher.ipynb` in Colab
+2. Run all cells
+3. Click the public URL
+
+> ⚠️ **Note:** Don't stop Cell 4 - the UI server runs there. Link expires in 1 week.
+
 ## Quick Commands (npm-style shortcuts)
 
 | Command | Description |

@@ -261,71 +261,76 @@ def build_config(
 # ============ Wizard Steps ============
 
 def step1_model():
-    """Step 1: Model Selection."""
-    with gr.Column():
-        gr.Markdown("## Step 1: Select Model")
-        
+    """Step 1: Model Selection (Redesigned)."""
+    with gr.Column(elem_classes=["premium-card"]):
         with gr.Row():
+            # Left: Main Selection
             with gr.Column(scale=2):
-                gr.Markdown("Choose a pre-trained model to fine-tune.")
+                gr.Markdown("### 🧠 Select Base Model", elem_classes=["main-header"])
+                gr.Markdown("Choose a pre-trained foundation model to fine-tune.", elem_classes=["mono-text"])
                 
                 model_name = gr.Dropdown(
                     choices=MODELS,
                     value=MODELS[0],
-                    label="Base Model",
-                    info="Smaller models train faster, larger models are smarter",
+                    label="",
+                    info="Select architecture",
+                    elem_id="model-dropdown",
+                    interactive=True,
                 )
                 
-                model_recommendation = gr.Textbox(
-                    value=MODEL_INFO.get(MODELS[0], ""),
-                    label="💡 Recommendation",
+                # Recommendation Card
+                with gr.Group():
+                    model_recommendation = gr.Textbox(
+                        value=MODEL_INFO.get(MODELS[0], ""),
+                        label="💡 AI Recommendation",
+                        interactive=False,
+                        lines=2,
+                        show_label=True,
+                    )
+
+                # Advanced Settings in Accordion
+                with gr.Accordion("⚙️ Advanced Configuration", open=False, elem_classes=["transparent-accordion"]):
+                    gr.Markdown("Optimization & LoRA Parameters")
+                    with gr.Row():
+                        quantization = gr.Radio(
+                            choices=QUANTIZATION,
+                            value="4bit",
+                            label="Quantization",
+                            info="Storage precision",
+                        )
+                        max_seq_length = gr.Slider(256, 4096, value=2048, step=256, label="Context Length")
+                    
+                    with gr.Row():
+                        lora_r = gr.Slider(4, 128, value=16, step=4, label="LoRA Rank (Capacity)")
+                        lora_alpha = gr.Slider(8, 256, value=32, step=8, label="LoRA Alpha (Scaling)")
+
+                # GPU Status Card (Always visible)
+                gpu_status = gr.Textbox(
+                    value=get_gpu_status(),
+                    label="🎮 GPU Resources",
                     interactive=False,
+                    lines=3,
+                    elem_classes=["mono-text"]
                 )
-                
-                quantization = gr.Radio(
-                    choices=QUANTIZATION,
-                    value="4bit",
-                    label="Quantization",
-                    info="4-bit uses least memory (recommended)",
-                )
-                
-                max_seq_length = gr.Slider(
-                    minimum=256,
-                    maximum=4096,
-                    value=2048,
-                    step=256,
-                    label="Max Sequence Length",
-                    info="Longer = more context, more memory",
-                )
-                
-                with gr.Row():
-                    lora_r = gr.Slider(4, 64, value=16, step=4, label="LoRA Rank")
-                    lora_alpha = gr.Slider(8, 128, value=32, step=8, label="LoRA Alpha")
-                
-                gpu_status = gr.Textbox(value=get_gpu_status(), label="GPU Status", interactive=False)
-            
-            # Help panel on the right
+
+            # Right: Quick Guide
             with gr.Column(scale=1):
-                with gr.Accordion("📖 Quick Guide", open=True):
+                with gr.Group():
+                    gr.Markdown("#### 📖 Quick Guide")
                     gr.Markdown("""
-**Which model to choose?**
-
-| Use Case | Recommended |
-|----------|-------------|
-| 🚀 First time | `Llama-3.2-1B` |
-| 💬 Chat | `Mistral-7B` or `phi-2` |
-| 📝 Classification | `deberta-v3-base` |
-| 🎤 ASR | `whisper-small` |
-
-**Quantization:**
-- `4bit` = Least memory (start here!)
-- `8bit` = More accuracy
-- `none` = Full precision (needs lots of RAM)
-
-**LoRA Settings:**
-- Default values work for most cases
-- Higher rank = more capacity but slower
-                    """)
+                    **1. Choose Model**
+                    - `Llama-3.2-1B`: Best for beginners
+                    - `Mistral-7B`: High quality chat
+                    - `Whisper`: Speech-to-Text
+                    
+                    **2. Quantization**
+                    - `4bit`: Best for 90% of cases (low VRAM)
+                    - `8bit`: Higher precision
+                    
+                    **3. LoRA Rank**
+                    - `16`: Standard fine-tuning
+                    - `64+`: Complex reasoning tasks
+                    """, elem_classes=["mono-text"])
         
         def update_recommendation(model):
             return MODEL_INFO.get(model, "No info available")
@@ -336,87 +341,78 @@ def step1_model():
 
 
 def step2_data():
-    """Step 2: Data Configuration."""
-    with gr.Column():
-        gr.Markdown("## Step 2: Configure Data")
+    """Step 2: Data Configuration (Redesigned with Cards)."""
+    with gr.Column(elem_classes=["premium-card"]):
+        gr.Markdown("### 📂 Data & Privacy", elem_classes=["main-header"])
         
         with gr.Row():
+            # Left: Data Selection
             with gr.Column(scale=2):
-                gr.Markdown("Select your training data source.")
+                gr.Markdown("#### Select Data Source", elem_classes=["mono-text"])
                 
                 data_source = gr.Radio(
                     choices=DATA_SOURCES,
                     value="huggingface",
-                    label="Data Source",
+                    label="",
+                    info="Choose where your training data comes from",
+                    elem_classes=["premium-radio"],
                 )
                 
-                with gr.Row():
+                with gr.Group():
                     data_path = gr.Textbox(
                         value="tatsu-lab/alpaca",
-                        label="Dataset Path / HuggingFace ID",
-                        placeholder="Enter path or HuggingFace dataset name",
+                        label="Source Path / ID",
+                        placeholder="e.g., tatsu-lab/alpaca or data/train.csv",
+                        info="HuggingFace dataset ID or local path",
                     )
                     
                     hf_examples = gr.Dropdown(
                         choices=DATASET_CHOICES,
-                        label="Quick Select (HuggingFace)",
-                        info="Pre-filled examples",
+                        label="⚡ Quick Select",
+                        info="Pre-validated datasets for fine-tuning",
+                        interactive=True,
                     )
                 
                 data_format = gr.Radio(
                     choices=FORMATS,
                     value="alpaca",
                     label="Data Format",
-                    info="alpaca = instruction/output, chatml = chat format",
+                    info="Ensure your data matches this schema",
                 )
                 
-                gr.Markdown("### 🔑 HuggingFace Token")
-                gr.Markdown("*For private datasets or gated models (like Llama)*")
-                
-                with gr.Row():
-                    hf_token_input = gr.Textbox(
-                        label="Token",
-                        placeholder="hf_xxxxxxxxxxxxxxxx",
-                        type="password",
-                    )
-                    hf_token_btn = gr.Button("Save", size="sm")
+                # Authentication Card
+                with gr.Accordion("� Authentication (Private Data)", open=False, elem_classes=["premium-card", "transparent-accordion"]):
+                    gr.Markdown("Required for gated models (Llama 3) or private datasets.")
+                    with gr.Row():
+                        hf_token_input = gr.Textbox(
+                            label="HuggingFace Token",
+                            placeholder="hf_...",
+                            type="password",
+                            scale=3,
+                        )
+                        hf_token_btn = gr.Button("Validate", size="sm", scale=1, variant="secondary")
+                    
                     hf_token_status = gr.Textbox(
                         value=check_hf_token(),
-                        label="Status",
+                        label="",
                         interactive=False,
+                        elem_classes=["mono-text"]
                     )
             
-            # Help panel on the right
+            # Right: Guide
             with gr.Column(scale=1):
-                with gr.Accordion("📖 Quick Guide", open=True):
-                    gr.Markdown("""
-**Getting Data:**
-
-1. **HuggingFace** (easiest)
-   - Just enter dataset name
-   - Example: `tatsu-lab/alpaca`
-
-2. **CSV file**
-   - Create `data/train.csv`
-   - Columns: `instruction`, `output`
-
-**Need a token?**
-1. Go to [HuggingFace Settings](https://huggingface.co/settings/tokens)
-2. Create a token
-3. Paste above and click Save
-
-**Format Guide:**
-- `alpaca` = instruction/output pairs
-- `chatml` = chat messages
-- `audio` = for ASR models
-                    """)
+                gr.Markdown("#### � Format Guide", elem_classes=["mono-text"])
+                gr.Markdown("""
+                **Alpaca (Standard)**
+                ```json
+                {"instruction": "...", "output": "..."}
+                ```
                 
-                with gr.Accordion("🔗 Quick Links", open=False):
-                    gr.Markdown("""
-- [Get HuggingFace Token](https://huggingface.co/settings/tokens)
-- [Browse Datasets](https://huggingface.co/datasets)
-- [Alpaca Format Guide](https://github.com/tatsu-lab/stanford_alpaca)
-                    """)
+                **ChatML (Conversation)**
+                ```json
+                {"messages": [{"role": "user", "content": "..."}]}
+                ```
+                """, elem_classes=["mono-text"])
         
         def update_path(example):
             return example if example else "tatsu-lab/alpaca"
@@ -428,177 +424,125 @@ def step2_data():
 
 
 def step3_training():
-    """Step 3: Training Configuration & Execution."""
-    with gr.Column():
-        gr.Markdown("## Step 3: Train Model")
+    """Step 3: Training Dashboard (Redesigned)."""
+    with gr.Column(elem_classes=["premium-card"]):
+        gr.Markdown("### 🚀 Training Dashboard", elem_classes=["main-header"])
         
         with gr.Row():
+            # Left: Controls
             with gr.Column(scale=2):
+                # Stats Row (Mini Cards)
                 with gr.Row():
-                    epochs = gr.Slider(1, 10, value=3, step=1, label="Epochs")
-                    batch_size = gr.Slider(1, 16, value=4, step=1, label="Batch Size")
-                    learning_rate = gr.Number(value=2e-4, label="Learning Rate")
+                    epochs = gr.Slider(1, 10, value=3, step=1, label="Epochs", info="Passes through data")
+                    batch_size = gr.Slider(1, 16, value=4, step=1, label="Batch Size", info="Items per step")
+                    learning_rate = gr.Number(value=2e-4, label="Learning Rate", info="Step size")
                 
-                output_dir = gr.Textbox(value="./output", label="Output Directory")
+                output_dir = gr.Textbox(value="./output", label="Artifact Output Path")
                 
-                # Debug options
+                with gr.Accordion("🛠️ Developer Tools", open=False, elem_classes=["transparent-accordion"]):
+                    with gr.Row():
+                        debug_mode = gr.Checkbox(label="Verbose Debug Logging", value=False)
+                        save_logs = gr.Checkbox(label="Save Logs to File", value=True)
+                
+                # Big Action Buttons
                 with gr.Row():
-                    debug_mode = gr.Checkbox(
-                        label="🐛 Debug Mode",
-                        value=False,
-                        info="Show detailed logs, stack traces, and save log file",
-                    )
-                    save_logs = gr.Checkbox(
-                        label="💾 Save Logs",
-                        value=True,
-                        info="Save training logs to output/training.log",
-                    )
+                    start_btn = gr.Button("▶ START TRAINING", variant="primary", scale=2, elem_classes=["primary-btn"])
+                    stop_btn = gr.Button("⏹ ABORT", variant="stop", scale=1)
                 
-                with gr.Row():
-                    start_btn = gr.Button("▶ Start Training", variant="primary", size="lg")
-                    stop_btn = gr.Button("⏹ Stop", variant="stop", size="lg")
-                
-                progress_bar = gr.Slider(
-                    minimum=0,
-                    maximum=100,
-                    value=0,
-                    label="Progress",
+                # Progress
+                progress_bar = gr.Slider(0, 100, 0, label="Training Progress", interactive=False)
+
+            # Right: Live Terminal
+            with gr.Column(scale=2):
+                gr.Markdown("#### � Live Terminal", elem_classes=["mono-text"])
+                logs_output = gr.Textbox(
+                    label="",
+                    lines=20,
+                    max_lines=25,
                     interactive=False,
+                    elem_id="logs-panel",
+                    placeholder="Waiting for training to start...",
+                    show_label=False,
                 )
-                
-                with gr.Accordion("📜 Training Logs", open=False):
-                    logs_output = gr.Textbox(
-                        label="",
-                        lines=15,
-                        max_lines=20,
-                        interactive=False,
-                        elem_id="logs-panel",
-                    )
-            
-            # Help panel
-            with gr.Column(scale=1):
-                with gr.Accordion("📖 Quick Guide", open=True):
-                    gr.Markdown("""
-**Training Tips:**
-
-- Start with **1 epoch** to test
-- If "CUDA out of memory": reduce batch_size
-- Loss should decrease over time
-
-**Debug Mode:**
-- ☑ Shows full error stack traces
-- ☑ Logs GPU memory at each step
-- ☑ Saves detailed log file
-- ☑ Shows model loading details
-
-**Output Directory:**
-- `./output/` = relative to ai-compiler
-- Checkpoints saved automatically
-- Resume if interrupted
-                    """)
         
     return epochs, batch_size, learning_rate, output_dir, debug_mode, save_logs, start_btn, stop_btn, progress_bar, logs_output
 
 
 def step4_deploy():
-    """Step 4: Deploy Model."""
-    with gr.Column():
-        gr.Markdown("## Step 4: Deploy Model")
-        gr.Markdown("Your model is ready! Configure tokens and deploy.")
-        
-        # Token Section
-        gr.Markdown("### 🔑 HuggingFace Tokens")
-        gr.Markdown("""
-        | Token Type | Purpose | How to Get |
-        |------------|---------|------------|
-        | **Read Token** | Download private datasets, gated models | [Get here](https://huggingface.co/settings/tokens) |
-        | **Write Token** | Upload models to Hub | [Create with write access](https://huggingface.co/settings/tokens) |
-        """)
+    """Step 4: Deploy Model (Redesigned)."""
+    with gr.Column(elem_classes=["premium-card"]):
+        gr.Markdown("### 🚀 Deployment Hub", elem_classes=["main-header"])
         
         with gr.Row():
-            with gr.Column():
-                read_token_input = gr.Textbox(
-                    label="🔒 Read Token (for private data)",
-                    placeholder="hf_xxxxxxxxxxxxx",
-                    type="password",
-                    info="Use for: Private datasets, Llama, gated models",
+            # Left: Authentication & Cloud
+            with gr.Column(scale=1):
+                gr.Markdown("#### ☁️ Cloud Deploy (HuggingFace)", elem_classes=["mono-text"])
+                
+                with gr.Accordion("🔑 Manage Tokens", open=True, elem_classes=["premium-card", "transparent-accordion"]):
+                    with gr.Row():
+                        read_token_input = gr.Textbox(label="Read Token", placeholder="hf_...", type="password")
+                        read_token_btn = gr.Button("Save", size="sm")
+                    read_token_status = gr.Textbox(label="", interactive=False, visible=False)
+                    
+                    with gr.Row():
+                        write_token_input = gr.Textbox(label="Write Token", placeholder="hf_...", type="password")
+                        write_token_btn = gr.Button("Save", size="sm")
+                    write_token_status = gr.Textbox(label="", interactive=False, visible=False)
+
+                gr.Markdown("---")
+                
+                hf_repo_name = gr.Textbox(
+                    label="Repository Name",
+                    placeholder="username/my-awesome-model",
+                    info="Where to push the model",
                 )
-                read_token_btn = gr.Button("Save Read Token", size="sm")
-                read_token_status = gr.Textbox(value="", label="Status", interactive=False)
+                private_repo = gr.Checkbox(label="Make Private", value=True)
+                
+                hf_deploy_btn = gr.Button("🚀 Push to Hub", variant="primary", elem_classes=["primary-btn"])
+                hf_deploy_status = gr.Textbox(label="Status", interactive=False)
+                hf_model_url = gr.Textbox(label="Model URL", interactive=False, show_copy_button=True)
+
+            # Center: Divider (optional, or just spacing)
             
-            with gr.Column():
-                write_token_input = gr.Textbox(
-                    label="✍️ Write Token (for upload)",
-                    placeholder="hf_xxxxxxxxxxxxx",
-                    type="password",
-                    info="Use for: Uploading models, creating repos",
+            # Right: Local & Test
+            with gr.Column(scale=1):
+                gr.Markdown("#### � Local Export", elem_classes=["mono-text"])
+                with gr.Group():
+                    with gr.Row():
+                        export_format = gr.Radio(
+                            choices=["adapter", "merged", "gguf"],
+                            value="adapter",
+                            label="Format",
+                            elem_classes=["premium-radio"]
+                        )
+                        export_btn = gr.Button("Export", size="sm")
+                    export_status = gr.Textbox(label="", interactive=False)
+                
+                gr.Markdown("---")
+                gr.Markdown("#### 🧪 Sandbox Test", elem_classes=["mono-text"])
+                
+                load_model_id = gr.Textbox(
+                    label="Model ID",
+                    placeholder="Enter model ID to test",
                 )
-                write_token_btn = gr.Button("Save Write Token", size="sm")
-                write_token_status = gr.Textbox(value="", label="Status", interactive=False)
-        
-        gr.Markdown("---")
-        
-        # Deploy Section
-        gr.Markdown("### 📤 Deploy to HuggingFace Hub")
-        
-        model_path = gr.Textbox(value="./output", label="Trained Model Path")
-        
-        with gr.Row():
-            hf_repo_name = gr.Textbox(
-                label="Repository Name",
-                placeholder="your-username/my-fine-tuned-model",
-                info="Format: username/model-name",
-            )
-            private_repo = gr.Checkbox(label="Private Repository", value=False)
-        
-        hf_deploy_btn = gr.Button("🚀 Deploy to HuggingFace Hub", variant="primary", size="lg")
-        
-        with gr.Row():
-            hf_deploy_status = gr.Textbox(label="Status", interactive=False, scale=2)
-            hf_model_url = gr.Textbox(label="📎 Model URL (copy this!)", interactive=False, scale=2)
-        
-        gr.Markdown("---")
-        
-        # Local Export Section
-        gr.Markdown("### 💻 Local Export")
-        with gr.Row():
-            export_format = gr.Radio(
-                choices=["adapter", "merged", "gguf"],
-                value="adapter",
-                label="Export Format",
-                info="adapter = small, merged = full model, gguf = for Ollama",
-            )
-            export_btn = gr.Button("Export Model")
-            export_status = gr.Textbox(label="Status", interactive=False)
-        
-        gr.Markdown("---")
-        
-        # Test Section
-        gr.Markdown("### 🧪 Test Your Deployed Model")
-        with gr.Row():
-            load_model_id = gr.Textbox(
-                label="HuggingFace Model ID",
-                placeholder="your-username/model-name",
-                info="Enter the URL from above or any HuggingFace model",
-            )
-            load_btn = gr.Button("Load Model")
-        
-        test_prompt = gr.Textbox(label="Test Prompt", lines=3, placeholder="Enter a prompt to test your model...")
-        test_output = gr.Textbox(label="Model Output", lines=5, interactive=False)
-        test_btn = gr.Button("🚀 Generate", variant="primary")
-        
-        # Token handlers
+                load_btn = gr.Button("Load Model", size="sm")
+                
+                test_prompt = gr.Textbox(label="Prompt", lines=2)
+                test_btn = gr.Button("⚡ Generate", variant="primary")
+                test_output = gr.Textbox(label="Response", lines=4, interactive=False, elem_classes=["mono-text"])
+
+        # Handlers
         def save_read_token(token):
             from engine.utils.huggingface import set_read_token
             if set_read_token(token):
-                return f"✅ Read token saved ({token[:8]}...)"
-            return "❌ Invalid token (must start with hf_)"
+                return "✅ Saved"
+            return "❌ Invalid"
         
         def save_write_token(token):
             from engine.utils.huggingface import set_write_token
             if set_write_token(token):
-                return f"✅ Write token saved ({token[:8]}...)"
-            return "❌ Invalid token (must start with hf_)"
+                return "✅ Saved"
+            return "❌ Invalid"
         
         read_token_btn.click(save_read_token, [read_token_input], [read_token_status])
         write_token_btn.click(save_write_token, [write_token_input], [write_token_status])
@@ -615,11 +559,67 @@ def create_wizard_app() -> gr.Blocks:
     
     with gr.Blocks(
         title="AI Compiler v2",
-        theme=gr.themes.Soft(),
+        theme=gr.themes.Soft(
+            primary_hue="indigo",
+            secondary_hue="slate",
+            neutral_hue="slate",
+        ),
         css="""
-        .main-header { text-align: center; margin-bottom: 20px; }
-        #logs-panel { font-family: monospace; font-size: 12px; }
-        .step-indicator { display: flex; justify-content: center; gap: 20px; margin: 20px 0; }
+        /* Global Dark Theme Overrides */
+        body, .gradio-container { background-color: #0f172a; color: #e2e8f0; }
+        
+        /* Premium Card Styling */
+        .premium-card {
+            background: rgba(30, 41, 59, 0.7) !important;
+            border: 1px solid rgba(148, 163, 184, 0.1) !important;
+            border-radius: 12px !important;
+            padding: 20px !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+            backdrop-filter: blur(10px);
+        }
+        
+        /* Header */
+        .main-header h1 {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 2.5rem !important;
+            font-weight: 800 !important;
+            margin-bottom: 0.5rem;
+        }
+        
+        /* Buttons */
+        .primary-btn {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%) !important;
+            border: none !important;
+            color: white !important;
+            font-weight: 600 !important;
+            transition: all 0.2s ease;
+        }
+        .primary-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 15px -3px rgba(124, 58, 237, 0.3);
+        }
+        
+        /* Step Indicator */
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        
+        /* Utility */
+        .mono-text { font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+        .success-text { color: #4ade80 !important; font-weight: 600; }
+        .error-text { color: #f87171 !important; font-weight: 600; }
+        
+        /* Custom Accordion */
+        .transparent-accordion {
+            background: transparent !important;
+            border: none !important;
+        }
         """
     ) as app:
         
