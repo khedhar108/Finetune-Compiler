@@ -614,7 +614,7 @@ def step4_deploy():
                     
                     test_prompt = gr.Textbox(label="Test Prompt", lines=2, placeholder="Type your query here...")
                     test_btn = gr.Button("Generate Preview", variant="primary", size="sm")
-                    test_output = gr.Textbox(label="Output", lines=3, interactive=False, show_copy_button=True)
+                    test_output = gr.Textbox(label="Output", lines=3, interactive=False)
 
     # Handlers (Auth)
     def save_read_token(token):
