@@ -1,0 +1,56 @@
+{
+  "project": {
+    "name": "my-finetune",
+    "output_dir": "./output",
+    "seed": 42
+  },
+  "data": {
+    "source": "csv",
+    "path": "./data/train.csv",
+    "format": "alpaca"
+  },
+  "model": {
+    "name": "unsloth/Llama-3.2-1B",
+    "task": "causal_lm",
+    "quantization": "4bit",
+    "max_seq_length": 2048,
+    "dtype": "auto",
+    "trust_remote_code": false
+  },
+  "lora": {
+    "r": 16,
+    "alpha": 32,
+    "dropout": 0.05,
+    "target_modules": [
+      "q_proj",
+      "v_proj",
+      "k_proj",
+      "o_proj"
+    ],
+    "bias": "none",
+    "task_type": "CAUSAL_LM"
+  },
+  "training": {
+    "epochs": 3,
+    "batch_size": 4,
+    "gradient_accumulation_steps": 4,
+    "learning_rate": 0.0002,
+    "weight_decay": 0.01,
+    "warmup_ratio": 0.03,
+    "fp16": true,
+    "bf16": false,
+    "gradient_checkpointing": true,
+    "max_grad_norm": 1.0,
+    "optim": "adamw_8bit"
+  },
+  "logging": {
+    "log_steps": 10,
+    "save_steps": 100,
+    "eval_steps": 100,
+    "save_total_limit": 3,
+    "logging_dir": "./logs",
+    "report_to": [
+      "none"
+    ]
+  }
+}

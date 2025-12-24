@@ -1,0 +1,213 @@
+# 🔧 AI Compiler Core Engine
+
+> Modular, efficient LLM fine-tuning engine with LoRA/QLoRA support.
+
+## Installation
+
+```bash
+# Basic install
+uv sync
+
+# With UI (Gradio web interface)
+uv sync --extra ui
+
+# With Unsloth (2-5x faster, Linux/Colab only)
+uv sync --extra unsloth
+
+# Full install (dev + ui + unsloth)
+uv sync --all-extras
+```
+
+## Quick Commands (npm-style shortcuts)
+
+| Command | Description |
+|---------|-------------|
+| `uv run train` | Train with default config |
+| `uv run train-colab` | Train with Colab-optimized config |
+| `uv run train-asr` | Train ASR/Whisper model |
+| `uv run ui` | Launch Gradio UI (classic) |
+| `uv run ui-share` | Launch UI with public share link |
+| `uv run info` | Show system info |
+| `uv run init` | Generate default config |
+| `uv run test` | Run tests |
+| `uv run lint` | Check code style |
+| `uv run format` | Format code |
+| `uv run typecheck` | Run type checker |
+
+### UI Options
+
+| Command | Port | Description |
+|---------|------|-------------|
+| `uv run ai-compile ui` | 7860 | Classic UI (tabs) |
+| `uv run ai-compile ui2` | 7862 | **Wizard UI** (step-by-step) |
+
+## Full CLI Commands
+
+```bash
+# Training
+uv run ai-compile train --config configs/default.json
+uv run ai-compile train --config my_config.json --resume ./checkpoint
+
+# Inference (test your model)
+uv run ai-compile infer --model ./output --prompt "What is AI?"
+uv run ai-compile infer --model ./output --interactive
+
+# Evaluation
+uv run ai-compile evaluate --model ./output --dataset test.csv
+
+# Export
+uv run ai-compile export --model ./output --format gguf
+
+# Deploy to HuggingFace
+uv run ai-compile deploy --model ./output --repo your-username/model-name
+
+# UI
+uv run ai-compile ui      # Classic
+uv run ai-compile ui2     # Wizard
+
+# Info
+uv run ai-compile info
+```
+
+## Data Preparation
+
+```bash
+# Download from Google Drive
+uv run python scripts/download_gdrive.py --folder-id YOUR_ID --output-dir data/
+
+# Prepare audio for ASR (convert to 16kHz WAV)
+uv run python scripts/prepare_audio_dataset.py \
+    --input-csv data/raw.csv \
+    --output-dir data/prepared
+```
+
+## Core Commands (Fallback)
+
+If shortcuts don't work, use these direct commands:
+
+```bash
+# Install UV (first time only)
+# Windows:
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+# Linux/Mac:
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Sync dependencies
+uv sync                          # Basic
+uv sync --extra ui               # With Gradio UI
+uv sync --extra unsloth          # With Unsloth (Linux only)
+uv sync --dev                    # With dev tools
+
+# Run CLI directly
+uv run python -m engine.cli.main train --config configs/default.json
+uv run python -m engine.cli.main info
+uv run python -m engine.cli.main ui
+
+# Run tests directly
+uv run python -m pytest tests/ -v
+
+# Run linting directly
+uv run python -m ruff check engine/
+uv run python -m mypy engine/ --ignore-missing-imports
+
+# Launch UI directly (without CLI)
+uv run python -c "from engine.ui import launch_ui; launch_ui()"
+```
+
+## Project Structure
+
+```
+ai-compiler/
+├── engine/              # Core modules
+│   ├── data/            # Data loading
+│   ├── models/          # Model loading, LoRA
+│   ├── training/        # Training loop
+│   ├── evaluation/      # Metrics
+│   ├── inference/       # Model testing
+│   ├── ui/              # Gradio Classic UI
+│   ├── ui_v2/           # Gradio Wizard UI
+│   ├── cli/             # Typer CLI
+│   └── utils/           # Config, logging, checkpoint
+├── configs/             # JSON configs
+├── scripts/             # Utility scripts
+├── tests/               # Test suite
+├── docs/                # Documentation
+└── pyproject.toml       # All configs
+```
+
+## Tips & Requirements
+
+### Disk Space
+
+| Component | Size |
+|-----------|------|
+| Base model | 2-8 GB (cached once) |
+| **LoRA adapter (output)** | 10-50 MB only! |
+| Checkpoints | Auto-cleaned |
+
+### Custom Cache Location
+
+By default, models are cached in `C:\Users\{you}\.cache\huggingface\`. 
+To use a different drive:
+
+```powershell
+# Windows - set before running
+$env:HF_HOME = "D:\models\cache"
+
+# Or add to your profile permanently:
+[System.Environment]::SetEnvironmentVariable("HF_HOME", "D:\models\cache", "User")
+```
+
+```bash
+# Linux/Mac
+export HF_HOME="/path/to/cache"
+```
+
+### Running Environments
+
+| Environment | GPU | Notes |
+|-------------|-----|-------|
+| **Local Windows** | Your NVIDIA GPU | Needs ~10 GB disk |
+| **Google Colab** | Free T4 GPU | Uses cloud storage |
+| **VS Code + Colab** | Free T4 GPU | Best of both |
+
+### Unsloth (2-5x Faster)
+
+```bash
+# Linux/Colab only
+uv sync --extra unsloth
+
+# Windows - auto-falls back to PEFT (works fine)
+uv sync
+```
+
+### Common Issues
+
+| Problem | Solution |
+|---------|----------|
+| CUDA out of memory | Reduce `batch_size` to 1-2 |
+| Slow on Windows | Normal without Unsloth |
+| Model not found | Check path or HF login |
+| UI won't open | Run `uv sync --extra ui` |
+
+### Resume Training
+
+Training auto-resumes from checkpoints:
+```bash
+# Interrupted? Just run again:
+uv run train
+# → Auto-resumes from last checkpoint!
+```
+
+## Documentation
+
+- [**Quick Start**](docs/quick-start.md) ← 5-minute demo
+- [**Getting Started**](docs/getting-started.md) ← Full guide
+- [**ASR Medical Guide**](docs/asr-medical-guide.md) ← Whisper for medical transcription
+- [Architecture](docs/core-engine.md)
+- [Commands Reference](COMMANDS.md)
+
+## License
+
+MIT
+
