@@ -500,7 +500,7 @@ def step4_deploy():
                 
                 hf_deploy_btn = gr.Button("🚀 Push to Hub", variant="primary", elem_classes=["primary-btn"])
                 hf_deploy_status = gr.Textbox(label="Status", interactive=False)
-                hf_model_url = gr.Textbox(label="Model URL", interactive=False, show_copy_button=True)
+                hf_model_url = gr.Textbox(label="Model URL", interactive=False)
 
             # Center: Divider (optional, or just spacing)
             
