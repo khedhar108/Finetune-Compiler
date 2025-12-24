@@ -57,13 +57,13 @@ def test_step3_training_returns_correct_count():
 
 
 def test_step4_deploy_returns_correct_count():
-    """Step 4 should return exactly 14 components."""
+    """Step 4 should return exactly 15 components (added deploy_status_banner)."""
     from engine.ui_v2.app import step4_deploy
     
     with gr.Blocks():
         result = step4_deploy()
     
-    assert len(result) == 14, f"step4_deploy should return 14 items, got {len(result)}"
+    assert len(result) == 15, f"step4_deploy should return 15 items, got {len(result)}"
 
 
 def test_wizard_app_creates_successfully():

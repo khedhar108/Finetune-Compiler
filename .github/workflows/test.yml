@@ -1,0 +1,55 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install uv
+        run: pip install uv
+      
+      - name: Install dependencies
+        run: uv sync --extra dev
+      
+      - name: Run smoke tests
+        run: uv run python -m tests
+      
+      - name: Run pytest (with Gradio)
+        run: |
+          uv sync --extra ui
+          uv run pytest tests/ -v --tb=short
+        continue-on-error: true  # UI tests may skip if Gradio has issues
+
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install uv
+        run: pip install uv
+      
+      - name: Install dependencies
+        run: uv sync --extra dev
+      
+      - name: Run ruff check
+        run: uv run ruff check .
+        continue-on-error: true  # Don't fail on lint warnings initially

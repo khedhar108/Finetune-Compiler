@@ -62,6 +62,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - One-click deploy to HuggingFace Hub
   - Added `ui2` CLI command: `ai-compile ui2`
 
+- **UI v2 Premium Redesign (Dec 2024)**
+  - **Dark Theme**: Glassmorphism cards, gradient buttons, monospace typography
+  - **Training Dashboard**: 3-state status indicator (Idle/Running/Success/Failed) with blinking animation
+  - **Full Log Retention**: Removed 50-line limit, scrollable terminal
+  - **Loss Parsing**: Auto-extracts and displays final training loss
+  - **Netlify-Style Deploy**: "Deployment Control Center" with Production/Preview columns
+  - **Conditional Deploy**: Button disabled until training succeeds
+  - **Status Badges**: LIVE, BUILDING, OFFLINE indicators
+  - **Smoke Tests**: `tests/test_ui_v2.py` with component count validation
+  - **Test Runner**: `python -m tests` for pre-push validation
+
 - **HuggingFace Integration**
   - Added `engine/utils/huggingface.py` for Hub integration
   - Read/Write token management
