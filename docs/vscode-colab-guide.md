@@ -1,88 +1,36 @@
 # 🚀 VS Code + Colab T4 Quick Setup
 
-Run the AI Compiler Wizard UI on Colab's Tesla T4 GPU from VS Code.
+Run the AI Compiler Wizard UI on Colab's Tesla T4 GPU.
 
 ---
 
-## Prerequisites
+## Quick Start
 
-1. **VS Code** with Google Colab extension installed
-2. **Google Account** for Colab access
-
----
-
-## Step-by-Step Guide
-
-### Step 1: Connect VS Code to Colab
-
+### 1. Connect to Colab T4
 ```
-Ctrl + Shift + P  →  "Colab: Connect to Colab Runtime"  →  Select "T4 GPU"
+Ctrl + Shift + P → "Colab: Connect to Colab Runtime" → T4 GPU
 ```
 
-Wait for the status bar to show: `Colab: Connected`
+### 2. Open Notebook
+Open `notebooks/vscode_colab_launcher.ipynb` and run all cells.
 
----
-
-### Step 2: Upload ai-compiler Folder
-
-**Option A: Via VS Code Explorer**
-1. In VS Code's Explorer, right-click on the Colab workspace
-2. Upload the `ai-compiler` folder
-
-**Option B: Via Terminal**
-```bash
-# In VS Code terminal (connected to Colab)
-cd /content
-
-# If you have it on Google Drive:
-cp -r /content/drive/MyDrive/path/to/ai-compiler /content/
-
-# OR upload zip and extract:
-unzip ai-compiler.zip -d /content/
-```
-
----
-
-### Step 3: Run Setup
-
-**Option A: Use Dedicated Notebook (Recommended)**
-1. Open `research/notebooks/vscode_colab_launcher.ipynb` in VS Code
-2. Run the cells one by one to Check GPU, Install, and Launch UI.
-
-**Option B: Use Setup Script**
-1. Open Terminal in VS Code
-2. Run:
-```bash
-cd /content/ai-compiler
-python scripts/colab_vscode_setup.py
-```
-
-OR run these commands individually:
+**OR** run these commands in terminal:
 
 ```bash
-# 1. Install UV
+# Clone from GitHub
+git clone https://github.com/khedhar108/Finetune-Compiler.git
+cd Finetune-Compiler
+
+# Install
 pip install uv -q
-
-# 2. Install dependencies with UI and Unsloth
 uv sync --extra ui --extra unsloth
 
-# 3. Verify
-uv run ai-compile info
-
-# 4. Launch UI (with share link)
+# Launch UI
 uv run ai-compile ui2 --share
 ```
 
----
-
-### Step 4: Open the UI
-
-After running the UI command, you'll see:
-```
-Running on public URL: https://xxxxx.gradio.live
-```
-
-**Click that link** to open the Wizard UI!
+### 3. Click the Link
+Look for: `Running on public URL: https://xxxxx.gradio.live`
 
 ---
 
@@ -90,38 +38,27 @@ Running on public URL: https://xxxxx.gradio.live
 
 | Feature | Status |
 |---------|--------|
-| Tesla T4 GPU (16GB) | ✅ Available |
-| Unsloth (2-5x faster) | ✅ Enabled |
-| Wizard UI v2 | ✅ Running |
-| Training | ✅ Ready |
+| Tesla T4 GPU (16GB) | ✅ |
+| Unsloth (2-5x faster) | ✅ |
+| Wizard UI v2 | ✅ |
 
 ---
 
-## Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| "No GPU" | Reconnect: `Ctrl+Shift+P` → Colab → T4 |
-| UI won't start | Run `uv sync --extra ui` first |
-| Can't find folder | Check you're in `/content/ai-compiler` |
-
----
-
-## Quick Commands Reference
+## Commands Reference
 
 ```bash
 # Check GPU
 nvidia-smi
 
-# Check installation
+# Run info
 uv run ai-compile info
 
-# Run Classic UI
+# Launch Classic UI
 uv run ai-compile ui --share
 
-# Run Wizard UI v2
+# Launch Wizard UI
 uv run ai-compile ui2 --share
 
-# Train directly
+# Train
 uv run ai-compile train --config config.json
 ```
