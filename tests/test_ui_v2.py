@@ -47,13 +47,13 @@ def test_step2_data_returns_correct_count():
 
 
 def test_step3_training_returns_correct_count():
-    """Step 3 should return exactly 10 components."""
+    """Step 3 should return exactly 11 components (added training_status)."""
     from engine.ui_v2.app import step3_training
     
     with gr.Blocks():
         result = step3_training()
     
-    assert len(result) == 10, f"step3_training should return 10 items, got {len(result)}"
+    assert len(result) == 11, f"step3_training should return 11 items, got {len(result)}"
 
 
 def test_step4_deploy_returns_correct_count():

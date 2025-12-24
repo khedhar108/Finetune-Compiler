@@ -109,16 +109,28 @@ for category, datasets in HUGGINGFACE_DATASETS.items():
 class TrainingManager:
     """Manages training subprocess and logs."""
     
+    # Status constants
+    STATUS_IDLE = "idle"
+    STATUS_RUNNING = "running"
+    STATUS_SUCCESS = "success"
+    STATUS_FAILED = "failed"
+    
     def __init__(self):
         self.process = None
         self.logs = []
         self.is_running = False
         self.progress = 0
+        self.status = self.STATUS_IDLE
+        self.final_loss = None
+        self.error_message = None
     
     def start(self, config_path: str):
         self.logs = ["🚀 Starting training...\n"]
         self.is_running = True
         self.progress = 0
+        self.status = self.STATUS_RUNNING
+        self.final_loss = None
+        self.error_message = None
         
         self.process = subprocess.Popen(
             ["uv", "run", "ai-compile", "train", "--config", config_path],
@@ -138,8 +150,29 @@ class TrainingManager:
                         self.progress = min(step, 100)
                     except:
                         pass
+                # Parse loss
+                if "loss" in line.lower():
+                    try:
+                        import re
+                        match = re.search(r'loss[:\s]+([0-9.]+)', line.lower())
+                        if match:
+                            self.final_loss = float(match.group(1))
+                    except:
+                        pass
+                # Check for errors
+                if "error" in line.lower() or "exception" in line.lower():
+                    self.error_message = line.strip()
+            
+            # Determine final status
+            exit_code = self.process.wait()
             self.is_running = False
-            self.logs.append("\n✅ Training complete!")
+            
+            if exit_code == 0:
+                self.status = self.STATUS_SUCCESS
+                self.logs.append("\n✅ Training complete!")
+            else:
+                self.status = self.STATUS_FAILED
+                self.logs.append(f"\n❌ Training failed (exit code: {exit_code})")
         
         thread = threading.Thread(target=read_output, daemon=True)
         thread.start()
@@ -148,16 +181,34 @@ class TrainingManager:
         if self.process:
             self.process.terminate()
             self.is_running = False
+            self.status = self.STATUS_FAILED
             self.logs.append("\n⏹ Training stopped by user.")
     
     def get_logs(self) -> str:
-        return "".join(self.logs[-50:])
+        # Return ALL logs, not just last 50
+        return "".join(self.logs)
     
     def get_progress(self) -> int:
         return self.progress
+    
+    def get_status(self) -> str:
+        return self.status
+    
+    def get_status_html(self) -> str:
+        """Get status as styled HTML."""
+        if self.status == self.STATUS_IDLE:
+            return "⏳ **Waiting to start...**"
+        elif self.status == self.STATUS_RUNNING:
+            return "🔄 **Training in progress...**"
+        elif self.status == self.STATUS_SUCCESS:
+            loss_str = f" | Loss: {self.final_loss:.4f}" if self.final_loss else ""
+            return f"✅ **Training Complete!**{loss_str}"
+        else:  # FAILED
+            return f"❌ **Training Failed**"
 
 
 training_manager = TrainingManager()
+
 
 
 # ============ Helper Functions ============
@@ -451,21 +502,28 @@ def step3_training():
                 
                 # Progress
                 progress_bar = gr.Slider(0, 100, 0, label="Training Progress", interactive=False)
+                
+                # Status Indicator (3 states: idle, running, success/failed)
+                training_status = gr.Markdown(
+                    value="<div class='status-idle'>⏳ Waiting to start...</div>",
+                    elem_id="training-status"
+                )
 
             # Right: Live Terminal
             with gr.Column(scale=2):
-                gr.Markdown("#### � Live Terminal", elem_classes=["mono-text"])
+                gr.Markdown("#### 💻 Live Terminal", elem_classes=["mono-text"])
                 logs_output = gr.Textbox(
                     label="",
-                    lines=20,
-                    max_lines=25,
+                    lines=25,
+                    max_lines=None,  # No limit on stored lines
                     interactive=False,
                     elem_id="logs-panel",
                     placeholder="Waiting for training to start...",
                     show_label=False,
                 )
         
-    return epochs, batch_size, learning_rate, output_dir, debug_mode, save_logs, start_btn, stop_btn, progress_bar, logs_output
+    return epochs, batch_size, learning_rate, output_dir, debug_mode, save_logs, start_btn, stop_btn, progress_bar, logs_output, training_status
+
 
 
 def step4_deploy():
@@ -622,6 +680,41 @@ def create_wizard_app() -> gr.Blocks:
             background: transparent !important;
             border: none !important;
         }
+        
+        /* Scrollable Logs Panel */
+        #logs-panel textarea {
+            max-height: 500px !important;
+            overflow-y: auto !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            font-size: 12px !important;
+            background: #1e293b !important;
+            color: #e2e8f0 !important;
+        }
+        
+        /* Status Indicator Styles */
+        .status-idle { color: #94a3b8; }
+        .status-success { color: #4ade80; font-weight: bold; }
+        .status-failed { color: #f87171; font-weight: bold; }
+        
+        /* Blinking Animation for In-Progress */
+        .status-running {
+            color: #fbbf24;
+            font-weight: bold;
+            animation: blink 1s ease-in-out infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        
+        /* Boxed Card for Deploy */
+        .deploy-card {
+            background: rgba(30, 41, 59, 0.9) !important;
+            border: 1px solid rgba(99, 102, 241, 0.3) !important;
+            border-radius: 10px !important;
+            padding: 16px !important;
+            margin-bottom: 12px !important;
+        }
         """
     ) as app:
         
@@ -647,7 +740,7 @@ def create_wizard_app() -> gr.Blocks:
             
             with gr.Tab("3️⃣ Train", id=2):
                 (epochs, batch_size, learning_rate, output_dir, debug_mode, save_logs,
-                 start_btn, stop_btn, progress_bar, logs_output) = step3_training()
+                 start_btn, stop_btn, progress_bar, logs_output, training_status) = step3_training()
                 with gr.Row():
                     back3 = gr.Button("← Back")
                     next3 = gr.Button("Next: Deploy →", variant="primary")
@@ -704,10 +797,17 @@ def create_wizard_app() -> gr.Blocks:
                 log_file = Path(output_dir) / "training.log"
                 training_manager.logs.append(f"📝 Logs will be saved to: {log_file}\n")
             
-            # Stream updates
+            # Stream updates with status
             while training_manager.is_running:
-                yield training_manager.get_logs(), training_manager.get_progress()
+                status_html = f"<div class='status-running'>🔄 Training in progress... ({training_manager.get_progress()}%)</div>"
+                yield training_manager.get_logs(), training_manager.get_progress(), status_html
                 time.sleep(0.5)
+            
+            # Final status
+            if training_manager.status == TrainingManager.STATUS_SUCCESS:
+                final_status = f"<div class='status-success'>✅ Training Complete! Loss: {training_manager.final_loss or 'N/A'}</div>"
+            else:
+                final_status = f"<div class='status-failed'>❌ Training Failed</div>"
             
             # Save final logs
             if save_logs:
@@ -717,7 +817,7 @@ def create_wizard_app() -> gr.Blocks:
                     f.write(training_manager.get_logs())
                 training_manager.logs.append(f"\n💾 Logs saved to: {log_file}")
             
-            yield training_manager.get_logs(), 100
+            yield training_manager.get_logs(), 100, final_status
 
         
         start_btn.click(
@@ -728,7 +828,7 @@ def create_wizard_app() -> gr.Blocks:
                 epochs, batch_size, learning_rate, output_dir,
                 debug_mode, save_logs
             ],
-            outputs=[logs_output, progress_bar],
+            outputs=[logs_output, progress_bar, training_status],
         )
         
         stop_btn.click(
