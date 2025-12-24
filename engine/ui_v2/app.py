@@ -491,6 +491,8 @@ def step4_deploy():
 
                 gr.Markdown("---")
                 
+                model_path = gr.Textbox(value="./output", label="Trained Model Path", info="Path to your trained model")
+                
                 hf_repo_name = gr.Textbox(
                     label="Repository Name",
                     placeholder="username/my-awesome-model",
