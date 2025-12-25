@@ -174,7 +174,7 @@ def load_model(
             model_name,
             quantization_config=quant_config,
             device_map=device_map,
-            torch_dtype=torch_dtype,
+            dtype=torch_dtype,
             trust_remote_code=trust_remote_code,
             **kwargs,
         )

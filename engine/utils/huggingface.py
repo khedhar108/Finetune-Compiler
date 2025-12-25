@@ -241,3 +241,36 @@ def validate_repo_name(repo_name: str) -> tuple[bool, str]:
         return False, "Repository name contains invalid characters"
     
     return True, "✅ Valid repository name"
+
+
+# ============ Search ============
+
+def search_models(query: str, limit: int = 20) -> list[str]:
+    """
+    Search for models on Hugging Face Hub.
+    
+    Args:
+        query: Search query
+        limit: Maximum results to return
+        
+    Returns:
+        List of model IDs
+    """
+    try:
+        from huggingface_hub import HfApi
+        api = HfApi()
+        
+        models = api.list_models(
+            search=query,
+            limit=limit,
+            sort="downloads",
+            direction=-1,
+            filter="text-generation"  # Filter for text gen models primarily
+        )
+        
+        return [model.id for model in models]
+        
+    except Exception as e:
+        logger.warning(f"Model search failed: {e}")
+        return []
+
