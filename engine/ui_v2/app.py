@@ -11,6 +11,13 @@ import json
 import time
 from pathlib import Path
 
+# Try importing Unsloth FIRST before any other modules (transformers/peft)
+# This prevents the "Unsloth should be imported before..." warning
+try:
+    import unsloth
+except ImportError:
+    pass
+
 try:
     import gradio as gr
 except ImportError:
@@ -50,7 +57,7 @@ def create_wizard_app() -> gr.Blocks:
         # Wizard tabs as steps
         with gr.Tabs() as tabs:
             with gr.Tab("1️⃣ Model", id=0):
-                model_name, quantization, max_seq_length, lora_r, lora_alpha, gpu_status = step1_model()
+                model_name, quantization, max_seq_length, lora_r, lora_alpha, gpu_status, trust_remote_code = step1_model()
                 next1 = gr.Button("Next: Configure Data →", variant="primary")
             
             with gr.Tab("2️⃣ Data", id=1):
@@ -61,7 +68,7 @@ def create_wizard_app() -> gr.Blocks:
             
             with gr.Tab("3️⃣ Train", id=2):
                 (epochs, batch_size, learning_rate, output_dir, debug_mode, save_logs,
-                 start_btn, stop_btn, progress_bar, logs_output, training_status) = step3_training()
+                 start_btn, stop_btn, progress_bar, logs_output, training_status, loss_plot, eta_label) = step3_training()
                 with gr.Row():
                     back3 = gr.Button("← Back")
                     next3 = gr.Button("Next: Deploy →", variant="primary")
@@ -119,13 +126,14 @@ def create_wizard_app() -> gr.Blocks:
             model_name, quantization, max_seq_length, lora_r, lora_alpha,
             data_source, data_path, data_format, train_split,
             epochs, batch_size, learning_rate, output_dir,
-            debug_mode, save_logs
+            debug_mode, save_logs, trust_remote_code
         ):
             config = build_config(
                 model_name, quantization, max_seq_length, lora_r, lora_alpha,
                 data_source, data_path, data_format,
                 epochs, batch_size, learning_rate, output_dir,
-                train_split  # New arg
+                train_split,  # New arg
+                trust_remote_code=trust_remote_code
             )
             
             # Add debug flag to config
@@ -154,9 +162,18 @@ def create_wizard_app() -> gr.Blocks:
                 training_manager.logs.append(f"📝 Logs will be saved to: {log_file}\n")
             
             # Stream updates with status
+            import pandas as pd
             while training_manager.is_running:
                 status_html = f"<div class='status-running'>🔄 Training in progress... ({training_manager.get_progress()}%)</div>"
-                yield training_manager.get_logs(), training_manager.get_progress(), status_html
+                
+                # Plot data
+                if training_manager.plot_data:
+                    df = pd.DataFrame(training_manager.plot_data)
+                else:
+                    df = pd.DataFrame({"step": [], "loss": []})
+                
+                eta = f"⏱️ **ETA: {training_manager.eta_text}**"
+                yield training_manager.get_logs(), training_manager.get_progress(), status_html, df, eta
                 time.sleep(0.5)
             
             # Final status
@@ -173,7 +190,13 @@ def create_wizard_app() -> gr.Blocks:
                     f.write(training_manager.get_logs())
                 training_manager.logs.append(f"\n💾 Logs saved to: {log_file}")
             
-            yield training_manager.get_logs(), 100, final_status
+            # Final plot yield
+            if training_manager.plot_data:
+                df = pd.DataFrame(training_manager.plot_data)
+            else:
+                df = pd.DataFrame({"step": [], "loss": []})
+
+            yield training_manager.get_logs(), 100, final_status, df, "✅ **Done**"
         
         start_btn.click(
             start_training,
@@ -181,9 +204,9 @@ def create_wizard_app() -> gr.Blocks:
                 model_name, quantization, max_seq_length, lora_r, lora_alpha,
                 data_source, data_path, data_format, train_split,
                 epochs, batch_size, learning_rate, output_dir,
-                debug_mode, save_logs
+                debug_mode, save_logs, trust_remote_code
             ],
-            outputs=[logs_output, progress_bar, training_status],
+            outputs=[logs_output, progress_bar, training_status, loss_plot, eta_label],
         )
         
         stop_btn.click(

@@ -18,19 +18,29 @@ class TrainingManager:
     def __init__(self):
         self.process = None
         self.logs = []
+        self.plot_data = []  # List of {"step": x, "loss": y}
         self.is_running = False
         self.progress = 0
         self.status = self.STATUS_IDLE
         self.final_loss = None
         self.error_message = None
+        
+        # Time tracking
+        self.start_time = None
+        self.estimated_total_time = None
+        self.elapsed_time = 0
+        self.eta_text = "--:--"
     
     def start(self, config_path: str):
         self.logs = ["🚀 Starting training...\n"]
+        self.plot_data = [] 
         self.is_running = True
         self.progress = 0
         self.status = self.STATUS_RUNNING
         self.final_loss = None
         self.error_message = None
+        self.start_time = time.time()
+        self.eta_text = "Calculating..."
         
         self.process = subprocess.Popen(
             ["uv", "run", "ai-compile", "train", "--config", config_path],
@@ -60,9 +70,22 @@ class TrainingManager:
                         
                         if total > 0:
                             self.progress = int((current / total) * 100)
+                            
+                            # Calculate ETA
+                            if self.start_time:
+                                self.elapsed_time = time.time() - self.start_time
+                                if current > 0:
+                                    avg_time_per_step = self.elapsed_time / current
+                                    remaining_steps = total - current
+                                    eta_seconds = remaining_steps * avg_time_per_step
+                                    
+                                    # Format
+                                    import datetime
+                                    self.eta_text = str(datetime.timedelta(seconds=int(eta_seconds)))
                         
                         if loss > 0:
                             self.final_loss = loss
+                            self.plot_data.append({"step": current, "loss": loss})
                             
                     except Exception as e:
                         # self.logs.append(f"\nDebug: Error parsing progress: {e}\n")

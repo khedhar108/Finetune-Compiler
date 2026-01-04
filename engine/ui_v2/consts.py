@@ -297,10 +297,10 @@ body, .gradio-container {
    4. INPUTS & DROPDOWNS (AVANT-GARDE STYLE)
    ========================================================================== */
 
-/* General Logic for ALL Inputs to relax density */
-input, textarea, select, .gr-input, .gr-box, .gr-check-radio, .custom-dropdown .wrap {
+/* General Logic for ALL Inputs */
+input, textarea, select, .gr-input, .gr-box, .gr-check-radio {
     font-size: 16px !important;
-    padding: 12px 16px !important; /* Larger touch targets */
+    padding: 12px 16px !important;
     border-radius: 8px !important;
     background-color: #1e293b !important;
     border: 1px solid #334155 !important;
@@ -308,43 +308,66 @@ input, textarea, select, .gr-input, .gr-box, .gr-check-radio, .custom-dropdown .
     transition: all 0.2s ease !important;
 }
 
+/* GREEN DROPDOWNS (Requested) */
+.custom-dropdown label, .custom-dropdown input {
+    background-color: #064e3b !important; /* Emerald-900 (Green) */
+    border: 1px solid #059669 !important; /* Emerald-600 */
+    color: #e2e8f0 !important;
+    font-size: 16px !important;
+    padding: 12px 16px !important;
+    border-radius: 8px !important;
+}
+
 /* Force Height on Text Inputs & Dropdown containers */
-.gr-input label input, .custom-dropdown .wrap, .custom-dropdown .wrap input {
+.gr-input label input, .custom-dropdown label, .custom-dropdown input {
     min-height: 48px !important;
     display: flex !important;
     align-items: center !important;
 }
 
-input:focus, textarea:focus, .custom-dropdown .wrap:focus-within {
+input:focus, textarea:focus, .custom-dropdown label:focus-within {
     border-color: #818cf8 !important; /* Indigo-400 */
     box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.15) !important;
     background-color: #252f45 !important;
 }
 
-/* Custom Dropdown Specifics */
+/* Custom Dropdown Specifics - FORCE FULL WIDTH ON TRIGGER */
 .custom-dropdown {
     border: none !important;
     background: transparent !important;
     padding: 0 !important;
+    width: 100% !important;
+    flex-grow: 1 !important;
 }
 
-.custom-dropdown .wrap {
+/* 
+   Target every possible internal wrapper Gradio might use.
+   The structure can be: .block > .wrap > .wrap-inner > .secondary-wrap > input 
+*/
+.custom-dropdown .block,
+.custom-dropdown .wrap,
+.custom-dropdown .wrap-inner,
+.custom-dropdown .secondary-wrap,
+.custom-dropdown label,
+.custom-dropdown .form {
+    width: 100% !important;
+    max-width: 100% !important;
     display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    cursor: pointer !important;
-    width: 100% !important;
+    flex-grow: 1 !important;
 }
 
-.custom-dropdown .wrap input {
+.custom-dropdown input {
     width: 100% !important;
-    flex: 1 !important;
+    flex-grow: 1 !important;
+    min-width: 0 !important;
 }
 
 .custom-dropdown svg { /* Chevron */
     fill: #94a3b8 !important; 
     width: 20px !important; 
     height: 20px !important;
+    min-width: 20px !important;
+    margin-left: 8px !important;
 }
 
 /* The Options List (Popup) */

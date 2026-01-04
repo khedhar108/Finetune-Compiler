@@ -378,8 +378,24 @@ def export(
     if output:
         print_info(f"Output: {output}")
     
-    # TODO: Implement export
-    print_warning("Export not yet implemented")
+    # Implement export logic
+    if format.lower() == "gguf":
+        from engine.models.export import export_to_gguf
+        
+        qt = quantization if quantization else "q4_k_m"  # Default to balanced
+        success = export_to_gguf(
+            model_path=str(model),
+            output_path=str(output) if output else None,
+            quantization=qt
+        )
+        
+        if not success:
+            raise typer.Exit(code=1)
+            
+    else:
+        # Placeholder for other formats (adapter, merged)
+        # For now, just copy the files or use standard PEFT merge
+        print_warning(f"Format '{format}' not yet implemented in CLI. Only 'gguf' is fully supported via Unsloth.")
 
 
 @app.command()

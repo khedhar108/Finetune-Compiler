@@ -72,11 +72,11 @@ uv run ftune-cli infer --model ./output --interactive
 # Evaluation
 uv run ai-compile evaluate --model ./output --dataset test.csv
 
-# Export
-uv run ai-compile export --model ./output --format gguf
+# Export (GGUF for Ollama/Local)
+uv run ftune-cli export --model ./output --format gguf --quantization q4_k_m
 
 # Deploy to HuggingFace
-uv run ai-compile deploy --model ./output --repo your-username/model-name
+uv run ftune-cli deploy --model ./output --repo your-username/model-name
 
 # UI
 uv run ai-compile ui      # Classic
@@ -206,6 +206,18 @@ uv sync
 | Slow on Windows | Normal without Unsloth |
 | Model not found | Check path or HF login |
 | UI won't open | Run `uv sync --extra ui` |
+| **Tokenizer Error (LasrTokenizer)** | Check **"Trust Remote Code"** in Step 1 (Required for models with custom code like `google/medasr`) |
+
+### 🚀 GGUF Export (for Ollama/Local)
+
+To run your model locally (e.g. in Ollama, LM Studio), export it to GGUF format:
+
+```bash
+uv run ftune export --model ./output --format gguf --quantization q4_k_m
+```
+
+This creates a single optimized file (e.g. `model-q4_k_m.gguf`).
+> *Note: GGUF export requires Unsloth (Linux/Colab).*
 
 ### 🛑 Stopping the Server
 

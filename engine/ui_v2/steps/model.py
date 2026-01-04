@@ -60,6 +60,14 @@ def step1_model():
                     elem_classes=["content-box"]
                 )
                 
+                # Trust Remote Code (Required for some models like medasr)
+                trust_remote_code = gr.Checkbox(
+                    label="Trust Remote Code", 
+                    value=False,
+                    info="Enable for custom architectures (e.g., DeepSeek, MedASR)",
+                    elem_classes=["checkbox-card"]
+                )
+                
                 # 2. Optimization Settings (Horizontal)
                 gr.Markdown("#### Optimization Strategy", elem_classes=["section-header"])
                 quantization = gr.Radio(
@@ -164,4 +172,4 @@ def step1_model():
     model_name.change(update_recommendation, [model_name], [model_recommendation, backend_status, performance_stats])
     search_query.submit(perform_search, [search_query], [model_name, search_status])
     
-    return model_name, quantization, max_seq_length, lora_r, lora_alpha, gpu_status
+    return model_name, quantization, max_seq_length, lora_r, lora_alpha, gpu_status, trust_remote_code

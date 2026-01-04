@@ -2,8 +2,9 @@
 Step 4: Deployment Control Center.
 """
 
+import os
 import gradio as gr
-from engine.utils.huggingface import set_read_token, set_write_token
+from engine.utils.huggingface import set_read_token, set_write_token, get_read_token, get_write_token
 
 def step4_deploy():
     """Step 4: Deployment Control Center (Netlify-Style)."""
@@ -26,17 +27,31 @@ def step4_deploy():
                 """, elem_classes=["deploy-box-header"])
                 
                 with gr.Column(elem_classes=["deploy-box-body"]):
-                    gr.Markdown("**Destination: HuggingFace Hub**", elem_classes=["mono-text"])
+                    gr.Markdown("""
+                    **Destination:** HuggingFace **Model Hub** (Files)
+                    *Note: This uploads model weights. To create a Chat App, create a 'Space' in HF and link this model.*
+                    """, elem_classes=["helper-text"])
                     
                     # Auth Section
-                    with gr.Accordion("🔑 API Authentication", open=False, elem_classes=["transparent-accordion"]):
+                    with gr.Accordion("🔑 API Authentication", open=True, elem_classes=["transparent-accordion"]):
                         with gr.Row():
-                            read_token_input = gr.Textbox(label="Read Token", placeholder="hf_...", type="password")
+                            read_token_input = gr.Textbox(
+                                label="Read Token (Download)", 
+                                placeholder="hf_... (for accessing base models)", 
+                                type="password",
+                                value=get_read_token() or ""
+                            )
                             read_token_btn = gr.Button("Save", size="sm")
                         read_token_status = gr.Textbox(label="", interactive=False, visible=False)
                         
                         with gr.Row():
-                            write_token_input = gr.Textbox(label="Write Token", placeholder="hf_...", type="password")
+                            # Only show Write Token if explicitly set (don't show fallback to avoid confusion)
+                            write_token_input = gr.Textbox(
+                                label="Write Token (Upload)", 
+                                placeholder="hf_... (required for deployment)", 
+                                type="password",
+                                value=os.environ.get("HF_WRITE_TOKEN", "") 
+                            )
                             write_token_btn = gr.Button("Save", size="sm")
                         write_token_status = gr.Textbox(label="", interactive=False, visible=False)
 

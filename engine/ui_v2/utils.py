@@ -243,6 +243,7 @@ def build_config(
     data_source, data_path, data_format,
     epochs, batch_size, learning_rate,
     output_dir, train_split,
+    trust_remote_code=False,
 ) -> dict:
     """Build configuration from wizard inputs."""
     return {
@@ -263,6 +264,7 @@ def build_config(
             "task": "asr" if "whisper" in model_name.lower() else "causal_lm",
             "quantization": quantization,
             "max_seq_length": max_seq_length,
+            "trust_remote_code": trust_remote_code,
         },
         "lora": {
             "r": lora_r,

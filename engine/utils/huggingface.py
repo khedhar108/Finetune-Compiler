@@ -119,6 +119,17 @@ def upload_to_hub(
         
         api = HfApi(token=write_token)
         
+        # Validate token permissions first
+        try:
+            user_info = api.whoami(token=write_token)
+            print_info(f"Authenticated as: {user_info.get('name', 'Unknown')}")
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"❌ Authentication failed: Invalid token. ({str(e)})",
+                "url": None,
+            }
+
         # Create repository if it doesn't exist
         print_info(f"Creating repository: {repo_name}")
         try:
@@ -129,6 +140,12 @@ def upload_to_hub(
                 exist_ok=True,
             )
         except Exception as e:
+            if "403" in str(e):
+                return {
+                    "success": False,
+                    "error": "❌ Permission Denied: Your token is READ-ONLY. Please provide a WRITE token.",
+                    "url": None,
+                }
             logger.warning(f"Repo creation note: {e}")
         
         # Upload all files

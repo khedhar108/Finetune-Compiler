@@ -31,12 +31,27 @@ def step3_training():
                     stop_btn = gr.Button("⏹ ABORT", variant="stop", scale=1)
                 
                 # Progress
-                progress_bar = gr.Slider(0, 100, 0, label="Training Progress", interactive=False)
+                with gr.Row():
+                    progress_bar = gr.Slider(0, 100, 0, label="Training Progress", interactive=False, scale=4)
+                    with gr.Column(scale=1, min_width=120):
+                        eta_label = gr.Markdown("⏱️ **ETA: --:--**", elem_id="eta-label")
                 
-                # Status Indicator (3 states: idle, running, success/failed)
+                # Status Indicator 
                 training_status = gr.Markdown(
                     value="<div class='status-idle'>⏳ Waiting to start...</div>",
                     elem_id="training-status"
+                )
+
+                # Loss Curve Chart
+                loss_plot = gr.LinePlot(
+                    label="Training Loss",
+                    x="step",
+                    y="loss",
+                    title="Real-time Learning Curve",
+                    tooltip=["step", "loss"],
+                    height=250,
+                    x_title="Step",
+                    y_title="Loss",
                 )
 
             # Right: Live Terminal
@@ -52,4 +67,4 @@ def step3_training():
                     show_label=False,
                 )
         
-    return epochs, batch_size, learning_rate, output_dir, debug_mode, save_logs, start_btn, stop_btn, progress_bar, logs_output, training_status
+    return epochs, batch_size, learning_rate, output_dir, debug_mode, save_logs, start_btn, stop_btn, progress_bar, logs_output, training_status, loss_plot, eta_label
