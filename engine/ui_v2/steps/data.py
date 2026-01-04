@@ -220,43 +220,36 @@ def step2_data():
             
             project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
             
-            try:
-                # Spawn a NEW PowerShell window that runs uv add
-                # This avoids file lock issues since it's a separate process
-                if sys.platform == "win32":
-                    # Windows: Open new PowerShell window, run uv add, then pause
-                    cmd = f'Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd \'{project_root}\'; Write-Host \'Installing {pkg_name}...\' -ForegroundColor Cyan; uv add {pkg_name}; Write-Host \'\'; Write-Host \'Installation complete! You can close this window and restart FTune.\' -ForegroundColor Green"'
-                    subprocess.Popen(["powershell", "-Command", cmd], cwd=project_root)
-                else:
-                    # Linux/Mac: Run in background
-                    subprocess.Popen(["uv", "add", pkg_name], cwd=project_root)
+            # Windows: Suggest manual installation to avoid locking issues
+            if sys.platform == "win32":
+                return f"""### ⚠️ Windows: Action Required
                 
-                return f"""## ✅ Installation Started!
+To ensure safe installation without file locking errors, please follows these steps:
 
-📦 Check the **new PowerShell window** for progress.
+1. **Stop the server**: Press `Ctrl+C` in your terminal (or run `uv run kill-ftune`).
+2. **Install the package**:
+   ```bash
+   uv add {pkg_name}
+   ```
+   *(This ensures it installs ONLY in the virtual environment)*
 
----
+3. **Restart the server**:
+   ```bash
+   uv run ftune
+   ```
+"""
 
-## ⚠️ RESTART REQUIRED
+            # Linux/Mac: Run in background (safer on POSIX)
+            try:
+                subprocess.Popen(["uv", "add", pkg_name], cwd=project_root)
+                return f"""## ✅ Installation Started
+                
+Running: `uv add {pkg_name}`
 
-Once installation completes:
-
-1. **Press `Ctrl+C`** in the FTune terminal to stop
-2. **Run:** `uv run ftune`
-
-> **Note:** The package is installed, but Python needs to restart to load it.
+> Please check your terminal for progress. You may need to restart the server manually if modules are not found.
 """
             except Exception as e:
-                return f"""❌ **Failed to launch installer**
-
-Error: {str(e)}
-
-**Manual installation:**
-1. Open a new PowerShell window
-2. Run: `cd "{project_root}"`
-3. Run: `uv add {pkg_name}`
-4. Restart FTune
-"""
+                return f"❌ Error starting installation: {e}"
         
         def show_loading():
             """Show loading state immediately when analysis starts."""
