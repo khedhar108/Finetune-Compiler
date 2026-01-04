@@ -25,6 +25,10 @@ from engine.ui_v2.steps.model import step1_model
 from engine.ui_v2.steps.data import step2_data
 from engine.ui_v2.steps.train import step3_training
 from engine.ui_v2.steps.deploy import step4_deploy
+from engine.ui_v2.steps.sandbox import step5_sandbox
+
+# Global inference engine instance
+inference_engine = None
 
 
 # ============ Main App ============
@@ -32,19 +36,12 @@ from engine.ui_v2.steps.deploy import step4_deploy
 def create_wizard_app() -> gr.Blocks:
     """Create the wizard-style Gradio app."""
     
-    with gr.Blocks(
-        title="AI Compiler v2",
-        theme=gr.themes.Soft(
-            primary_hue="indigo",
-            secondary_hue="slate",
-            neutral_hue="slate",
-        ),
-        css=UI_CSS
-    ) as app:
+    # Gradio 6.0: Theme and CSS moved to launch()
+    with gr.Blocks(title="FTune - Easy Fine-Tuning") as app:
         
         gr.Markdown(
             """
-            # 🚀 AI Compiler v2
+            # 🚀 FTune
             ### Visual LLM Fine-Tuning Wizard
             """,
             elem_classes=["main-header"]
@@ -57,7 +54,7 @@ def create_wizard_app() -> gr.Blocks:
                 next1 = gr.Button("Next: Configure Data →", variant="primary")
             
             with gr.Tab("2️⃣ Data", id=1):
-                data_source, data_path, data_format = step2_data()
+                data_source, data_path, data_format, train_split = step2_data()
                 with gr.Row():
                     back2 = gr.Button("← Back")
                     next2 = gr.Button("Next: Train →", variant="primary")
@@ -71,9 +68,15 @@ def create_wizard_app() -> gr.Blocks:
             
             with gr.Tab("4️⃣ Deploy", id=3):
                 (deploy_status_banner, model_path, hf_repo_name, private_repo, hf_deploy_btn, hf_deploy_status, hf_model_url,
-                 export_format, export_btn, export_status,
-                 load_model_id, load_btn, test_prompt, test_output, test_btn) = step4_deploy()
-                back4 = gr.Button("← Back to Training")
+                 export_format, export_btn, export_status) = step4_deploy()
+                with gr.Row():
+                    back4 = gr.Button("← Back")
+                    next4 = gr.Button("Next: Sandbox →", variant="primary")
+
+            with gr.Tab("5️⃣ Sandbox", id=4):
+                (sb_model_path, sb_quant, sb_device, sb_load_btn, sb_status,
+                 sb_chatbot, sb_msg, sb_clear, sb_submit) = step5_sandbox()
+                back5 = gr.Button("← Back to Deploy")
         
         # Tab navigation
         next1.click(lambda: gr.Tabs(selected=1), None, tabs)
@@ -108,18 +111,21 @@ def create_wizard_app() -> gr.Blocks:
             outputs=[deploy_status_banner, hf_deploy_btn, tabs]
         )
         back4.click(lambda: gr.Tabs(selected=2), None, tabs)
+        next4.click(lambda: gr.Tabs(selected=4), None, tabs)
+        back5.click(lambda: gr.Tabs(selected=3), None, tabs)
         
         # Training handlers
         def start_training(
             model_name, quantization, max_seq_length, lora_r, lora_alpha,
-            data_source, data_path, data_format,
+            data_source, data_path, data_format, train_split,
             epochs, batch_size, learning_rate, output_dir,
             debug_mode, save_logs
         ):
             config = build_config(
                 model_name, quantization, max_seq_length, lora_r, lora_alpha,
                 data_source, data_path, data_format,
-                epochs, batch_size, learning_rate, output_dir
+                epochs, batch_size, learning_rate, output_dir,
+                train_split  # New arg
             )
             
             # Add debug flag to config
@@ -173,7 +179,7 @@ def create_wizard_app() -> gr.Blocks:
             start_training,
             inputs=[
                 model_name, quantization, max_seq_length, lora_r, lora_alpha,
-                data_source, data_path, data_format,
+                data_source, data_path, data_format, train_split,
                 epochs, batch_size, learning_rate, output_dir,
                 debug_mode, save_logs
             ],
@@ -221,7 +227,54 @@ def create_wizard_app() -> gr.Blocks:
         
         export_btn.click(export_model, [model_path, export_format], [export_status])
         
-        gr.Markdown("---\n*AI Compiler v2 | Wizard Interface*")
+        # Sandbox Handlers
+        def load_inference_model(path, quant, dev):
+            global inference_engine
+            from engine.inference import InferenceEngine
+            try:
+                q_val = None if quant == "None" else quant
+                inference_engine = InferenceEngine(
+                    model_path=path,
+                    device=dev,
+                    quantization=q_val,
+                    prompt_format="alpaca" # Defaulting for now
+                )
+                return "✅ Model Loaded Successfully"
+            except Exception as e:
+                return f"❌ Error: {str(e)}"
+
+        sb_load_btn.click(
+            load_inference_model,
+            [sb_model_path, sb_quant, sb_device],
+            [sb_status]
+        )
+
+        def user_message(user_msg, history):
+            return "", history + [[user_msg, None]]
+
+        def bot_response(history):
+            if not inference_engine:
+                history.append([None, "❌ Please load a model first."])
+                yield history
+                return
+            
+            user_msg = history[-1][0]
+            history[-1][1] = ""
+            
+            # Stream response
+            partial_text = ""
+            for token in inference_engine.stream(user_msg):
+                partial_text += token
+                history[-1][1] = partial_text
+                yield history
+
+        sb_submit.click(user_message, [sb_msg, sb_chatbot], [sb_msg, sb_chatbot], queue=False).then(
+            bot_response, sb_chatbot, sb_chatbot
+        )
+        sb_clear.click(lambda: None, None, sb_chatbot, queue=False)
+
+        
+        gr.Markdown("---\n*FTune | Easy Model Fine-Tuning*")
     
     return app
 
@@ -232,8 +285,37 @@ def launch_wizard_ui(
     server_name: str = "127.0.0.1",
 ):
     """Launch the wizard UI."""
-    app = create_wizard_app()
-    app.launch(share=share, server_port=server_port, server_name=server_name)
+    print(f"🚀 Launching FTune on http://{server_name}:{server_port}")
+    # Get Gradio version safely (Gradio 6.x API change)
+    try:
+        gradio_version = gr.__version__
+    except AttributeError:
+        import gradio
+        gradio_version = getattr(gradio, 'version', 'unknown')
+    print(f"Gradio Version: {gradio_version}")
+    
+    # Define Theme (Moved from Blocks in 6.0)
+    theme = gr.themes.Soft(
+        primary_hue="indigo",
+        secondary_hue="slate",
+        neutral_hue="slate",
+    )
+    
+    try:
+        app = create_wizard_app()
+        app.launch(
+            share=share, 
+            server_port=server_port, 
+            server_name=server_name,
+            theme=theme,
+            css=UI_CSS,
+            show_error=True # Show full tracebacks in browser
+        )
+    except Exception as e:
+        import traceback
+        print("\n❌ FATAL ERROR DURING LAUNCH:")
+        traceback.print_exc()
+        raise e
 
 
 if __name__ == "__main__":

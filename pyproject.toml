@@ -1,7 +1,7 @@
 [project]
-name = "ai-compiler-core"
+name = "ftune"
 version = "0.1.0"
-description = "A modular, resource-efficient LLM fine-tuning engine"
+description = "FTune: Easy no-code LLM fine-tuning with a beautiful UI"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.10"
@@ -28,12 +28,14 @@ dependencies = [
     "accelerate>=0.24.0",
     "peft>=0.7.0",
     "bitsandbytes>=0.41.0",
-    "typer[all]>=0.9.0",
+    "typer>=0.9.0",
     "rich>=13.0.0",
     "gdown>=4.7.0",
     "evaluate>=0.4.0",
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",
+    "huggingface-hub[hf-xet]>=0.36.0",
+    "torchcodec>=0.1.0",
 ]
 
 [project.optional-dependencies]
@@ -45,10 +47,11 @@ dev = [
     "pre-commit>=3.0.0",
 ]
 unsloth = [
-    "unsloth[colab-new]>=2024.0; sys_platform != 'win32'",
+    "unsloth[colab-new]>=2024.0",
+    "trl>=0.8.0",
 ]
 ui = [
-    "gradio>=4.0.0",
+    "gradio>=6.2.0",
 ]
 logging = [
     "mlflow>=2.0.0",
@@ -56,16 +59,17 @@ logging = [
 ]
 
 [project.scripts]
-# Main CLI
+# Main CLI - FTune: Easy Model Fine-Tuning
+ftune = "engine.cli.main:app"
+
+# Convenience shortcuts
+ftune-train = "engine.cli.main:app"           # uv run ftune-train
+ftune-ui = "engine.ui_v2.app:launch_wizard_ui" # uv run ftune-ui (wizard UI)
+
+# Legacy aliases (for backward compatibility)
 ai-compile = "engine.cli.main:app"
-
-# Convenience shortcuts (like npm scripts)
-ai-train = "engine.cli.main:app"              # uv run ai-train
-ai-ui = "engine.ui.app:launch_ui"              # uv run ai-ui (classic UI)
-ai-ui2 = "engine.ui_v2.app:launch_wizard_ui"   # uv run ai-ui2 (wizard UI)
-
-# UV scripts are not yet standardized in pyproject.toml
-# Use 'uv run ai-compile ...' directly
+ai-ui2 = "engine.ui_v2.app:launch_wizard_ui"
+kill-ftune = "engine.utils.cleanup:main"
 
 [build-system]
 requires = ["hatchling"]

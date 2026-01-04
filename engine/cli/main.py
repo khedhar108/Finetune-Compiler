@@ -23,13 +23,27 @@ from engine.utils.logging import (
     log_config,
 )
 from engine.utils.memory import print_gpu_info
+import os
+import sys
+
+# Inject local FFmpeg path if it exists
+project_root = Path(__file__).resolve().parent.parent.parent
+local_ffmpeg = project_root / ".venv" / "ffmpeg" / "bin"
+if local_ffmpeg.exists():
+    os.environ["PATH"] = str(local_ffmpeg) + os.pathsep + os.environ["PATH"]
+    if sys.platform == "win32":
+        try:
+            os.add_dll_directory(str(local_ffmpeg))
+        except Exception:
+            pass
 
 # Create Typer app
 app = typer.Typer(
     name="ai-compile",
-    help="🚀 AI Compiler Core - Modular LLM Fine-Tuning Engine",
+    help="AI Compiler Core - Modular LLM Fine-Tuning Engine",
     add_completion=True,
     rich_markup_mode="rich",
+    no_args_is_help=False,
 )
 
 console = Console()
@@ -42,7 +56,7 @@ def version_callback(value: bool) -> None:
         raise typer.Exit()
 
 
-@app.callback()
+@app.callback(invoke_without_command=True)
 def main(
     version: bool = typer.Option(
         None,
@@ -52,13 +66,24 @@ def main(
         is_eager=True,
         help="Show version and exit.",
     ),
+    ctx: typer.Context = typer.Option(None, hidden=True),
 ) -> None:
     """
-    🚀 AI Compiler Core - Modular LLM Fine-Tuning Engine
+    AI Compiler Core - Modular LLM Fine-Tuning Engine
     
     Fine-tune LLMs with LoRA/QLoRA on limited hardware.
     """
-    pass
+    # If no subcommand is invoked, launch the UI
+    if ctx.invoked_subcommand is None and not version:
+        try:
+            from engine.ui_v2 import launch_wizard_ui
+            print_banner()
+            # Default to port 7862 for Wizard UI
+            launch_wizard_ui(server_port=7862)
+        except ImportError:
+            print_error("UI dependencies not installed.")
+            print_info("Install with: uv sync --extra ui")
+            raise typer.Exit(1)
 
 
 @app.command()
@@ -86,12 +111,12 @@ def train(
     ),
     dry_run: bool = typer.Option(
         False,
-        "--dry-run",
+        "--dry_run",
         help="Validate config without training",
     ),
 ) -> None:
     """
-    🏋️ Train a model with the specified configuration.
+    Train a model with the specified configuration.
     
     Features:
     - Auto-resume from last checkpoint (--auto-resume)
@@ -202,7 +227,7 @@ def infer(
     ),
 ) -> None:
     """
-    🔮 Run inference on a trained model.
+    Run inference on a trained model.
     
     Examples:
         ai-compile infer --model ./output --prompt "What is AI?"
@@ -295,7 +320,7 @@ def evaluate(
     ),
 ) -> None:
     """
-    📊 Evaluate a trained model.
+    Evaluate a trained model.
     
     Example:
         ai-compile evaluate --model ./output --dataset test.csv --metrics accuracy,bleu
@@ -340,7 +365,7 @@ def export(
     ),
 ) -> None:
     """
-    📦 Export a trained model to different formats.
+    Export a trained model to different formats.
     
     Example:
         ai-compile export --model ./output --format gguf --quantization q4_k_m
@@ -373,7 +398,7 @@ def init(
     ),
 ) -> None:
     """
-    📝 Generate a default configuration file.
+    Generate a default configuration file.
     
     Example:
         ai-compile init --output my_config.json
@@ -396,7 +421,7 @@ def init(
 @app.command()
 def info() -> None:
     """
-    ℹ️ Display system and GPU information.
+    Display system and GPU information.
     """
     print_banner()
     
@@ -446,7 +471,7 @@ def ui(
     ),
 ) -> None:
     """
-    🖥️ Launch the visual UI for training and configuration.
+    Launch the visual UI for training and configuration.
     
     Example:
         ai-compile ui
@@ -500,7 +525,7 @@ def deploy(
     ),
 ) -> None:
     """
-    📤 Deploy a trained model to HuggingFace Hub.
+    Deploy a trained model to HuggingFace Hub.
     
     Example:
         ai-compile deploy --model ./output --repo username/my-model
@@ -562,7 +587,7 @@ def ui2(
     ),
 ) -> None:
     """
-    🧙 Launch the Wizard UI v2 (step-by-step interface).
+    Launch the Wizard UI v2 (step-by-step interface).
     
     Enhanced UI with:
     - Step-by-step wizard flow

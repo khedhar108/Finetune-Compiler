@@ -57,18 +57,19 @@ def step4_deploy():
                     hf_deploy_status = gr.Textbox(label="Deployment Log", interactive=False, lines=3)
                     hf_model_url = gr.Markdown(visible=False)
 
-        # Right: Preview & Sandbox
+
+        # Right: Export Artifacts
         with gr.Column(scale=1):
             with gr.Group():
                 gr.Markdown("""
                 <div class="deploy-header">
-                    <span style="font-weight:600">⚡ Preview & Export</span>
+                    <span style="font-weight:600">📦 Export Artifacts</span>
                     <span class="badge badge-success">READY</span>
                 </div>
                 """, elem_classes=["deploy-box-header"])
                 
                 with gr.Column(elem_classes=["deploy-box-body"]):
-                    gr.Markdown("#### 📦 Export Artifacts", elem_classes=["mono-text"])
+                    gr.Markdown("Download your trained model in various formats.", elem_classes=["mono-text"])
                     with gr.Row():
                         export_format = gr.Radio(
                             choices=["adapter", "merged", "gguf"],
@@ -78,20 +79,6 @@ def step4_deploy():
                         )
                         export_btn = gr.Button("Download", size="sm")
                     export_status = gr.Textbox(label="", interactive=False)
-                    
-                    gr.Markdown("---")
-                    gr.Markdown("#### 🧪 Live Sandbox", elem_classes=["mono-text"])
-                    
-                    load_model_id = gr.Textbox(
-                        label="Model Adapter ID",
-                        placeholder="./output",
-                        value="./output"
-                    )
-                    load_btn = gr.Button("Reload Model", size="sm", variant="secondary")
-                    
-                    test_prompt = gr.Textbox(label="Test Prompt", lines=2, placeholder="Type your query here...")
-                    test_btn = gr.Button("Generate Preview", variant="primary", size="sm")
-                    test_output = gr.Textbox(label="Output", lines=3, interactive=False)
 
     # Handlers (Auth)
     def save_read_token(token):
@@ -106,5 +93,4 @@ def step4_deploy():
     write_token_btn.click(save_write_token, [write_token_input], [write_token_status])
     
     return (deploy_status_banner, model_path, hf_repo_name, private_repo, hf_deploy_btn, hf_deploy_status, hf_model_url,
-            export_format, export_btn, export_status,
-            load_model_id, load_btn, test_prompt, test_output, test_btn)
+            export_format, export_btn, export_status)

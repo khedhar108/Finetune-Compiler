@@ -44,21 +44,46 @@ class TrainingManager:
             for line in self.process.stdout:
                 self.logs.append(line)
                 # Parse progress from logs
-                if "Step" in line:
+                # Parse structured progress
+                if "[PROGRESS]" in line:
                     try:
-                        step = int(line.split("Step")[1].split("]")[0].strip())
-                        self.progress = min(step, 100)
-                    except:
+                        # [PROGRESS] current_step=10 total_steps=100 loss=0.5
+                        parts = line.strip().split()
+                        data = {}
+                        for part in parts[1:]:  # Skip [PROGRESS]
+                            key, val = part.split("=")
+                            data[key] = val
+                        
+                        current = int(data.get("current_step", 0))
+                        total = int(data.get("total_steps", 1))
+                        loss = float(data.get("loss", 0.0))
+                        
+                        if total > 0:
+                            self.progress = int((current / total) * 100)
+                        
+                        if loss > 0:
+                            self.final_loss = loss
+                            
+                    except Exception as e:
+                        # self.logs.append(f"\nDebug: Error parsing progress: {e}\n")
                         pass
-                # Parse loss
-                if "loss" in line.lower():
-                    try:
-                        import re
-                        match = re.search(r'loss[:\s]+([0-9.]+)', line.lower())
-                        if match:
-                            self.final_loss = float(match.group(1))
-                    except:
-                        pass
+
+                # Fallback: Parse standard HuggingFace logs
+                elif "'loss':" in line or '"loss":' in line:
+                     # {'loss': 2.5029, 'learning_rate': 0.0002, 'epoch': 0.01}
+                     try:
+                         # Try to extract loss from dict-like string
+                         import ast
+                         # Find dict part
+                         idx_start = line.find("{")
+                         idx_end = line.rfind("}")
+                         if idx_start != -1 and idx_end != -1:
+                             log_dict = ast.literal_eval(line[idx_start:idx_end+1])
+                             if "loss" in log_dict:
+                                 self.final_loss = float(log_dict["loss"])
+                     except:
+                         pass
+
                 # Check for errors
                 if "error" in line.lower() or "exception" in line.lower():
                     self.error_message = line.strip()

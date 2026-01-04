@@ -1,6 +1,6 @@
-# 🔧 AI Compiler Core Engine
+# 🚀 FTune - Easy Model Fine-Tuning
 
-> Modular, efficient LLM fine-tuning engine with LoRA/QLoRA support.
+> No-code LLM fine-tuning with a beautiful wizard UI. Train your own AI models in minutes!
 
 ## Installation
 
@@ -29,7 +29,7 @@ Use Google Colab's free T4 GPU for faster training with Unsloth.
 !git clone https://github.com/khedhar108/Finetune-Compiler.git
 %cd Finetune-Compiler
 !pip install uv -q && uv sync --extra ui --extra unsloth
-!uv run ai-compile ui2 --share
+!uv run ftune --share
 ```
 
 Then **click the `gradio.live` link** to open the Wizard UI.
@@ -42,39 +42,32 @@ Then **click the `gradio.live` link** to open the Wizard UI.
 
 > ⚠️ **Note:** Don't stop Cell 4 - the UI server runs there. Link expires in 1 week.
 
-## Quick Commands (npm-style shortcuts)
+## Quick Commands
 
 | Command | Description |
 |---------|-------------|
-| `uv run train` | Train with default config |
-| `uv run train-colab` | Train with Colab-optimized config |
-| `uv run train-asr` | Train ASR/Whisper model |
-| `uv run ui` | Launch Gradio UI (classic) |
-| `uv run ui-share` | Launch UI with public share link |
-| `uv run info` | Show system info |
-| `uv run init` | Generate default config |
-| `uv run test` | Run tests |
-| `uv run lint` | Check code style |
-| `uv run format` | Format code |
-| `uv run typecheck` | Run type checker |
+| `uv run ftune` | 🎯 **Launch FTune Wizard UI** (Simple & Default) |
+| `uv run ftune-cli train ...` | Train using the CLI |
+| `uv run ftune-cli infer ...` | Test your fine-tuned model |
 
 ### UI Options
 
 | Command | Port | Description |
 |---------|------|-------------|
-| `uv run ai-compile ui` | 7860 | Classic UI (tabs) |
-| `uv run ai-compile ui2` | 7862 | **Wizard UI** (step-by-step) |
+| `uv run ftune` | 7862 | **FTune Wizard** (step-by-step) ✨ |
+| `uv run ftune-ui` | 7862 | Shortcut for Wizard UI |
+
 
 ## Full CLI Commands
 
 ```bash
 # Training
-uv run ai-compile train --config configs/default.json
-uv run ai-compile train --config my_config.json --resume ./checkpoint
+uv run ftune-cli train --config configs/default.json
+uv run ftune-cli train --config my_config.json --resume ./checkpoint
 
 # Inference (test your model)
-uv run ai-compile infer --model ./output --prompt "What is AI?"
-uv run ai-compile infer --model ./output --interactive
+uv run ftune-cli infer --model ./output --prompt "What is AI?"
+uv run ftune-cli infer --model ./output --interactive
 
 # Evaluation
 uv run ai-compile evaluate --model ./output --dataset test.csv
@@ -214,6 +207,14 @@ uv sync
 | Model not found | Check path or HF login |
 | UI won't open | Run `uv sync --extra ui` |
 
+### 🛑 Stopping the Server
+
+If you need to stop all running FTune instances (e.g., if files are blocked), run:
+
+```bash
+uv run kill-ftune
+```
+
 ### Resume Training
 
 Training auto-resumes from checkpoints:
@@ -229,6 +230,7 @@ uv run train
 - [**Getting Started**](docs/getting-started.md) ← Full guide
 - [**ASR Medical Guide**](docs/asr-medical-guide.md) ← Whisper for medical transcription
 - [Architecture](docs/core-engine.md)
+- [**Frontend Architecture (v2)**](docs/ui-architecture.md)
 - [Commands Reference](COMMANDS.md)
 
 ## License

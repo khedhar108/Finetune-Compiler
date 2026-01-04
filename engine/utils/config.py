@@ -34,6 +34,9 @@ class DataConfig(BaseModel):
     test_split: float = Field(
         default=0.1, ge=0.0, le=0.5, description="Test split ratio"
     )
+    train_ratio: float = Field(
+        default=1.0, ge=0.01, le=1.0, description="Dataset usage ratio (0.01 to 1.0)"
+    )
     max_samples: int | None = Field(
         default=None, description="Maximum samples to use (None for all)"
     )

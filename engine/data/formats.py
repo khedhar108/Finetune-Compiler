@@ -55,6 +55,7 @@ def alpaca_format(
     instruction_col: str = "instruction",
     input_col: str = "input",
     output_col: str = "output",
+    **kwargs: Any,
 ) -> dict[str, str]:
     """
     Format a single example in Alpaca style.
@@ -92,6 +93,7 @@ def chatml_format(
     user_col: str = "user",
     assistant_col: str = "assistant",
     messages_col: str = "messages",
+    **kwargs: Any,
 ) -> dict[str, str]:
     """
     Format a single example in ChatML style.
@@ -132,6 +134,7 @@ def chatml_format(
 def completion_format(
     example: dict[str, Any],
     text_col: str = "text",
+    **kwargs: Any,
 ) -> dict[str, str]:
     """
     Format a single example as simple text completion.

@@ -14,6 +14,9 @@ from transformers import (
     TrainingArguments,
     Trainer as HFTrainer,
     DataCollatorForLanguageModeling,
+    TrainerCallback,
+    TrainerControl,
+    TrainerState,
 )
 
 from engine.utils.config import Config
@@ -30,8 +33,34 @@ from engine.data import load_dataset_from_source, format_dataset
 from engine.data.loader import split_dataset
 from engine.models.loader import load_model, load_tokenizer, prepare_model_for_training
 from engine.models.adapters import create_lora_config, apply_lora, save_adapter
+from engine.models.backend import get_optimal_backend, BackendType
+from engine.models.unsloth_loader import load_unsloth_model
 
 logger = get_logger(__name__)
+
+
+class ProgressCallback(TrainerCallback):
+    """
+    Custom callback to print structured progress logs for the UI.
+    Format: [PROGRESS] current_step={step} total_steps={max_steps} loss={loss}
+    """
+    
+    def on_log(
+        self,
+        args: TrainingArguments,
+        state: TrainerState,
+        control: TrainerControl,
+        logs: dict[str, Any] = None,
+        **kwargs,
+    ):
+        """Called when logging."""
+        if state.is_local_process_zero and logs:
+            step = state.global_step
+            max_steps = state.max_steps
+            loss = logs.get("loss", 0.0)
+            
+            # Print structured log line that TrainingManager can parse easily
+            print(f"[PROGRESS] current_step={step} total_steps={max_steps} loss={loss}")
 
 
 class Trainer:
@@ -74,7 +103,15 @@ class Trainer:
             path=self.config.data.path,
         )
         
-        # Limit samples if specified
+        # Subsample dataset if train_ratio < 1.0
+        if self.config.data.train_ratio < 1.0:
+            count = int(len(dataset) * self.config.data.train_ratio)
+            # Ensure at least 10 samples or full dataset if smaller
+            count = max(10, min(count, len(dataset)))
+            dataset = dataset.select(range(count))
+            print_info(f"Reduced dataset to {count} samples ({self.config.data.train_ratio:.0%})")
+            
+        # Limit samples if specified (max_samples overrides if stricter)
         if self.config.data.max_samples:
             dataset = dataset.select(range(min(len(dataset), self.config.data.max_samples)))
             print_info(f"Limited to {len(dataset)} samples")
@@ -123,42 +160,61 @@ class Trainer:
         """Load model and tokenizer, apply LoRA."""
         print_info("Setting up model...")
         
-        # Load tokenizer
-        self.tokenizer = load_tokenizer(
-            self.config.model.name,
-            trust_remote_code=self.config.model.trust_remote_code,
-        )
+        # Backend Selection
+        backend = get_optimal_backend(self.config.model.name)
+        print_info(f"Using Training Backend: {backend.value.upper()}")
         
-        # Load model
-        self.model = load_model(
-            model_name=self.config.model.name,
-            quantization=self.config.model.quantization,
-            max_seq_length=self.config.model.max_seq_length,
-            dtype=self.config.model.dtype,
-            trust_remote_code=self.config.model.trust_remote_code,
-        )
-        
-        # Prepare for training
-        self.model = prepare_model_for_training(
-            self.model,
-            gradient_checkpointing=self.config.training.gradient_checkpointing,
-        )
-        
-        # Apply LoRA
-        lora_config = create_lora_config(
-            r=self.config.lora.r,
-            alpha=self.config.lora.alpha,
-            dropout=self.config.lora.dropout,
-            target_modules=self.config.lora.target_modules,
-            bias=self.config.lora.bias,
-            task_type=self.config.lora.task_type,
-        )
-        
-        self.model = apply_lora(
-            self.model,
-            lora_config,
-            prepare_for_kbit=self.config.model.quantization != "none",
-        )
+        if backend == BackendType.UNSLOTH:
+            # === Unsloth Load Path ===
+            self.model, self.tokenizer = load_unsloth_model(
+                model_name=self.config.model.name,
+                max_seq_length=self.config.model.max_seq_length,
+                dtype=self.config.model.dtype if self.config.model.dtype != "auto" else None,
+                load_in_4bit=True, # Unsloth optimized default
+                lora_r=self.config.lora.r,
+                lora_alpha=self.config.lora.alpha,
+                lora_dropout=self.config.lora.dropout,
+                target_modules=self.config.lora.target_modules,
+            )
+        else:
+            # === Standard HuggingFace Load Path ===
+            
+            # Load tokenizer
+            self.tokenizer = load_tokenizer(
+                self.config.model.name,
+                trust_remote_code=self.config.model.trust_remote_code,
+            )
+            
+            # Load model
+            self.model = load_model(
+                model_name=self.config.model.name,
+                quantization=self.config.model.quantization,
+                max_seq_length=self.config.model.max_seq_length,
+                dtype=self.config.model.dtype,
+                trust_remote_code=self.config.model.trust_remote_code,
+            )
+            
+            # Prepare for training
+            self.model = prepare_model_for_training(
+                self.model,
+                gradient_checkpointing=self.config.training.gradient_checkpointing,
+            )
+            
+            # Apply LoRA
+            lora_config = create_lora_config(
+                r=self.config.lora.r,
+                alpha=self.config.lora.alpha,
+                dropout=self.config.lora.dropout,
+                target_modules=self.config.lora.target_modules,
+                bias=self.config.lora.bias,
+                task_type=self.config.lora.task_type,
+            )
+            
+            self.model = apply_lora(
+                self.model,
+                lora_config,
+                prepare_for_kbit=self.config.model.quantization != "none",
+            )
     
     def get_training_args(self, resume_from: str | None = None) -> TrainingArguments:
         """Create HuggingFace TrainingArguments."""
@@ -222,6 +278,7 @@ class Trainer:
                 train_dataset=self.train_dataset,
                 eval_dataset=self.eval_dataset,
                 data_collator=data_collator,
+                callbacks=[ProgressCallback()],
             )
             
             # Train
